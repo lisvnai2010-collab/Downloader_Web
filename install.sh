@@ -1,10 +1,11 @@
 #!/data/data/com.termux/files/usr/bin/bash
 
 # ============================================
-# INSTALADOR DE BOT DE APK
+# INSTALADOR DE DOWNLOADER WEB
+# Repositorio: https://github.com/lisvnai2010-collab/Downloader_Web
 # ============================================
 
-echo "🚀 Iniciando instalación del Bot..."
+echo "🚀 Iniciando instalación del Downloader Web..."
 echo ""
 
 # 1. Verificar que estamos en Termux
@@ -23,37 +24,36 @@ pkg install python clang binutils -y
 pip install flask requests beautifulsoup4 urllib3
 
 # 4. Clonar repositorio
-echo "📥 Descargando el bot..."
+echo "📥 Descargando el Downloader Web..."
 cd ~/
-rm -rf BOT-DE-APK
+rm -rf Downloader_Web
 
-# ⚠️ CAMBIA ESTO POR TU REPOSITORIO
-git clone https://github.com/TU_USUARIO/TU-REPOSITORIO.git BOT-DE-APK
-# ----------------------------------------
+# ✅ TU REPOSITORIO
+git clone https://github.com/lisvnai2010-collab/Downloader_Web.git Downloader_Web
 
 # 5. Dar permisos al binario
 echo "🔓 Dando permisos..."
-cd ~/BOT-DE-APK
+cd ~/Downloader_Web
 chmod +x bitzero
 
 # 6. Crear script de inicio
 echo "📝 Creando script de inicio..."
-cat > ~/iniciar_bot.sh << 'EOF'
+cat > ~/iniciar_downloader.sh << 'EOF'
 #!/data/data/com.termux/files/usr/bin/bash
-cd ~/BOT-DE-APK
+cd ~/Downloader_Web
 python app.py
 EOF
-chmod +x ~/iniciar_bot.sh
+chmod +x ~/iniciar_downloader.sh
 
 # 7. Crear comandos rápidos
 echo "📝 Creando comandos rápidos..."
 cat >> ~/.bashrc << 'EOF'
 
-# Comandos para el Bot
-alias bot='~/iniciar_bot.sh'
-alias bot-start='~/iniciar_bot.sh'
-alias bot-stop='pkill -f "python app.py"'
-alias bot-status='ps aux | grep "python app.py" | grep -v grep'
+# Comandos para Downloader Web
+alias downloader='~/iniciar_downloader.sh'
+alias dw-start='~/iniciar_downloader.sh'
+alias dw-stop='pkill -f "python app.py"'
+alias dw-status='ps aux | grep "python app.py" | grep -v grep'
 EOF
 
 # 8. Cargar los comandos
@@ -63,11 +63,11 @@ echo ""
 echo "✅ ¡INSTALACIÓN COMPLETA!"
 echo ""
 echo "📋 COMANDOS DISPONIBLES:"
-echo "   bot          → Iniciar el servidor"
-echo "   bot-start    → Iniciar el servidor"
-echo "   bot-stop     → Detener el servidor"
-echo "   bot-status   → Ver si el servidor está corriendo"
+echo "   downloader   → Iniciar el servidor"
+echo "   dw-start     → Iniciar el servidor"
+echo "   dw-stop      → Detener el servidor"
+echo "   dw-status    → Ver si el servidor está corriendo"
 echo ""
 echo "🌐 Accede a: http://127.0.0.1:5000"
 echo ""
-echo "🚀 Para iniciar el bot ahora mismo, ejecuta: bot"
+echo "🚀 Para iniciar ahora mismo, ejecuta: downloader"
