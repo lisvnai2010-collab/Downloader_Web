@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BitZero • Panel de Descargas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a, #1e2937);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(71, 85, 105, 0.5);
+        }
+        .download-item {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            border-radius: 1rem;
+            padding: 1rem;
+            transition: all 0.3s ease;
+        }
+        .download-item:hover {
+            border-color: rgba(59, 130, 246, 0.5);
+            transform: translateX(5px);
+        }
+        .download-item.paused {
+            border-color: rgba(234, 179, 8, 0.5);
+            background: rgba(30, 41, 59, 0.8);
+        }
+        .download-item.connection-error {
+            border-color: rgba(239, 68, 68, 0.5);
+            background: rgba(30, 41, 59, 0.8);
+        }
+        .progress-bar {
+            height: 6px;
+            background: #1e293b;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #06b6d4);
+            border-radius: 999px;
+            transition: width 0.5s ease;
+        }
+        .progress-fill.paused {
+            background: linear-gradient(90deg, #eab308, #f59e0b);
+        }
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-iniciando { background: #f59e0b; color: #000; }
+        .status-conectando { background: #8b5cf6; color: #fff; }
+        .status-descargando { background: #3b82f6; color: #fff; }
+        .status-completado { background: #22c55e; color: #fff; }
+        .status-error { background: #ef4444; color: #fff; }
+        .status-pausado { background: #eab308; color: #000; }
+        .status-error_conexion { background: #ef4444; color: #fff; }
+        .text-cyan { color: #06b6d4; }
+        .text-blue { color: #3b82f6; }
+        .text-green { color: #22c55e; }
+        .text-yellow { color: #eab308; }
+        .text-red { color: #ef4444; }
+        .text-gray { color: #94a3b8; }
+        .btn-back {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            color: #94a3b8;
+            padding: 0.5rem 1rem;
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+        }
+        .btn-back:hover {
+            background: rgba(30, 41, 59, 1);
+            color: #fff;
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            transition: all 0.3s ease;
+        }
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.4);
+        }
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #64748b;
+        }
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #475569;
+        }
+        .download-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+        @media (min-width: 768px) {
+            .download-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        @media (min-width: 1024px) {
+            .download-grid {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+        }
+        .live-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+            animation: pulse 1.5s infinite;
+        }
+        .live-dot.paused {
+            background: #eab308;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .reconnect-badge {
+            display: inline-block;
+            background: rgba(234, 179, 8, 0.2);
+            border: 1px solid rgba(234, 179, 8, 0.3);
+            color: #eab308;
+            padding: 0.15rem 0.5rem;
+            border-radius: 999px;
+            font-size: 0.6rem;
+            font-weight: 600;
+            animation: pulse 1.5s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="max-w-7xl mx-auto p-6">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-4">
+                <a href="/" class="btn-back">
+                    <i class="fas fa-arrow-left mr-2"></i> Volver
+                </a>
+                <div>
+                    <h1 class="text-3xl font-bold flex items-center gap-3">
+                        <i class="fas fa-list text-blue-400"></i>
+                        Panel de Descargas
+                    </h1>
+                    <p class="text-gray text-sm mt-1">
+                        <span id="activeCount">0</span> descargas activas
+                        <span id="pausedCount" class="hidden text-yellow ml-2">
+                            <i class="fas fa-pause"></i> <span id="pausedCountNum">0</span> pausadas
+                        </span>
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-gray text-sm">
+                    <span class="live-dot mr-2"></span> En vivo
+                </span>
+                <button onclick="refrescarDescargas()" class="btn-back">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Contenedor de descargas -->
+        <div id="downloadsContainer" class="download-grid">
+            <!-- Las descargas se cargan aquí -->
+        </div>
+
+        <!-- Estado vacío -->
+        <div id="emptyState" class="empty-state card rounded-3xl p-12">
+            <i class="fas fa-cloud-download-alt"></i>
+            <h3 class="text-xl font-semibold text-gray mb-2">No hay descargas activas</h3>
+            <p class="text-gray text-sm">Las descargas que inicies aparecerán aquí automáticamente</p>
+            <a href="/" class="inline-block mt-4 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-xl transition">
+                <i class="fas fa-plus mr-2"></i> Nueva Descarga
+            </a>
+        </div>
+    </div>
+
+    <script>
+        let refreshInterval = null;
+        let downloadStreams = {};
+
+        function getStatusBadge(status) {
+            const statusMap = {
+                'iniciando': 'status-iniciando',
+                'conectando': 'status-conectando',
+                'descargando': 'status-descargando',
+                'completado': 'status-completado',
+                'error': 'status-error',
+                'pausado': 'status-pausado',
+                'error_conexion': 'status-error_conexion'
+            };
+            return statusMap[status] || 'status-iniciando';
+        }
+
+        function getStatusIcon(status) {
+            const icons = {
+                'iniciando': 'fa-clock',
+                'conectando': 'fa-spinner fa-spin',
+                'descargando': 'fa-download fa-bounce',
+                'completado': 'fa-check-circle',
+                'error': 'fa-times-circle',
+                'pausado': 'fa-pause-circle',
+                'error_conexion': 'fa-exclamation-triangle'
+            };
+            return icons[status] || 'fa-clock';
+        }
+
+        function formatTime(isoString) {
+            if (!isoString) return '-';
+            const date = new Date(isoString);
+            return date.toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        function crearTarjetaDescarga(download) {
+            const isActive = !download.completed && download.status !== 'error' && download.status !== 'error_conexion';
+            const isPaused = download.status === 'pausado' || download.paused;
+            const isConnectionError = download.status === 'error_conexion' || download.connection_error;
+            const percent = Math.round(download.percent || 0);
+            
+            let extraClasses = '';
+            let statusEmoji = '';
+            
+            if (isPaused) {
+                extraClasses = 'paused';
+                statusEmoji = '⏸️ ';
+            } else if (isConnectionError) {
+                extraClasses = 'connection-error';
+                statusEmoji = '⚠️ ';
+            }
+            
+            return `
+                <div class="download-item ${extraClasses}" id="download-${download.id}">
+                    <div class="flex items-start justify-between mb-2">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <i class="fas ${getStatusIcon(download.status)} ${download.status === 'descargando' ? 'text-blue-400' : ''} ${isPaused ? 'text-yellow' : ''} ${isConnectionError ? 'text-red' : ''}"></i>
+                                <span class="font-semibold text-sm truncate">${download.file_name || 'Desconocido'}</span>
+                            </div>
+                            <div class="text-xs text-gray mt-0.5">
+                                <i class="far fa-clock mr-1"></i> ${formatTime(download.start_time)}
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 ml-2 flex-shrink-0">
+                            <span class="status-badge ${getStatusBadge(download.status)}">
+                                ${statusEmoji}${download.status}
+                            </span>
+                            ${isPaused ? `<span class="reconnect-badge"><i class="fas fa-sync-alt fa-spin mr-1"></i>Reconectando</span>` : ''}
+                            ${isActive ? `<span class="live-dot ${isPaused ? 'paused' : ''}"></span>` : ''}
+                            <button onclick="eliminarDescarga('${download.id}')" class="btn-danger" title="Eliminar descarga">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3 mt-3">
+                        <div class="text-center">
+                            <div class="text-xs text-gray">Velocidad</div>
+                            <div class="text-sm font-mono ${isPaused ? 'text-yellow' : 'text-cyan'} font-semibold">${isPaused ? '⏸️ 0 KB/s' : (download.speed || '0 KB/s')}</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xs text-gray">Descargado</div>
+                            <div class="text-sm font-mono text-blue font-semibold">${download.downloaded || '0 MB'}</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xs text-gray">Total</div>
+                            <div class="text-sm font-mono text-gray font-semibold">${download.total_size || '0 MB'}</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <div class="flex justify-between text-xs text-gray mb-1">
+                            <span>Progreso</span>
+                            <span>${percent}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill ${isPaused ? 'paused' : ''}" style="width: ${percent}%"></div>
+                        </div>
+                    </div>
+
+                    ${download.error ? `
+                        <div class="mt-2 text-xs ${isConnectionError ? 'text-yellow' : 'text-red-400'} ${isConnectionError ? 'bg-yellow-900/20' : 'bg-red-900/20'} p-2 rounded-lg">
+                            <i class="fas ${isConnectionError ? 'fa-exclamation-triangle' : 'fa-exclamation-triangle'} mr-1"></i> ${download.error}
+                            ${isConnectionError ? ' 🔄 Reintentando automáticamente...' : ''}
+                        </div>
+                    ` : ''}
+
+                    ${isPaused ? `
+                        <div class="mt-2 text-xs text-yellow-400 bg-yellow-900/20 p-2 rounded-lg text-center">
+                            <i class="fas fa-pause-circle mr-1"></i> Descarga pausada por pérdida de conexión. Reconectando...
+                        </div>
+                    ` : ''}
+
+                    ${download.completed && download.status === 'completado' ? `
+                        <div class="mt-2 text-xs text-green-400 bg-green-900/20 p-2 rounded-lg text-center">
+                            <i class="fas fa-check-circle mr-1"></i> Descarga completada exitosamente
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function actualizarDescargas() {
+            fetch('/api/descargas')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('downloadsContainer');
+                    const emptyState = document.getElementById('emptyState');
+                    
+                    if (data.length === 0) {
+                        container.innerHTML = '';
+                        emptyState.style.display = 'block';
+                        document.getElementById('activeCount').textContent = '0';
+                        document.getElementById('pausedCount').classList.add('hidden');
+                        return;
+                    }
+                    
+                    emptyState.style.display = 'none';
+                    
+                    // Contar activas y pausadas
+                    const activas = data.filter(d => !d.completed && d.status !== 'error' && d.status !== 'error_conexion' && d.status !== 'pausado');
+                    const pausadas = data.filter(d => d.status === 'pausado' || d.paused || d.status === 'error_conexion' || d.connection_error);
+                    
+                    document.getElementById('activeCount').textContent = activas.length;
+                    
+                    if (pausadas.length > 0) {
+                        document.getElementById('pausedCount').classList.remove('hidden');
+                        document.getElementById('pausedCountNum').textContent = pausadas.length;
+                    } else {
+                        document.getElementById('pausedCount').classList.add('hidden');
+                    }
+                    
+                    // Ordenar: activas primero, luego pausadas, luego completadas
+                    data.sort((a, b) => {
+                        const aActive = !a.completed && a.status !== 'error' && a.status !== 'error_conexion' && a.status !== 'pausado';
+                        const bActive = !b.completed && b.status !== 'error' && b.status !== 'error_conexion' && b.status !== 'pausado';
+                        if (aActive && !bActive) return -1;
+                        if (!aActive && bActive) return 1;
+                        
+                        const aPaused = a.status === 'pausado' || a.paused || a.status === 'error_conexion' || a.connection_error;
+                        const bPaused = b.status === 'pausado' || b.paused || b.status === 'error_conexion' || b.connection_error;
+                        if (aPaused && !bPaused) return -1;
+                        if (!aPaused && bPaused) return 1;
+                        
+                        return 0;
+                    });
+                    
+                    container.innerHTML = data.map(d => crearTarjetaDescarga(d)).join('');
+                })
+                .catch(error => {
+                    console.error('Error cargando descargas:', error);
+                });
+        }
+
+        function eliminarDescarga(downloadId) {
+            if (!confirm('¿Estás seguro de eliminar esta descarga?')) return;
+            
+            fetch(`/api/descargas/${downloadId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    actualizarDescargas();
+                }
+            })
+            .catch(error => {
+                console.error('Error eliminando descarga:', error);
+            });
+        }
+
+        function refrescarDescargas() {
+            actualizarDescargas();
+            const btn = document.querySelector('.btn-back i');
+            if (btn) {
+                btn.classList.add('fa-spin');
+                setTimeout(() => btn.classList.remove('fa-spin'), 1000);
+            }
+        }
+
+        // Iniciar actualización automática
+        function iniciarAutoRefresh() {
+            actualizarDescargas();
+            refreshInterval = setInterval(actualizarDescargas, 2000);
+        }
+
+        // Detener actualización automática al salir
+        window.addEventListener('beforeunload', function() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+
+        // Iniciar
+        iniciarAutoRefresh();
+    </script>
+</body>
+</html>

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BitZero • Downloader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a, #1e2937);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(71, 85, 105, 0.5);
+        }
+        .btn-download {
+            background: linear-gradient(135deg, #ef4444, #db2777);
+            transition: all 0.3s ease;
+        }
+        .btn-download:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 30px rgba(239, 68, 68, 0.3);
+        }
+        .btn-download:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-panel {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            color: #94a3b8;
+            padding: 0.4rem 0.8rem;
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+            font-size: 0.8rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-panel:hover {
+            background: rgba(30, 41, 59, 0.9);
+            color: #fff;
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+        .btn-panel .badge {
+            background: #ef4444;
+            color: white;
+            border-radius: 999px;
+            padding: 0.05rem 0.4rem;
+            font-size: 0.6rem;
+            font-weight: bold;
+        }
+        .btn-panel .badge.paused-badge {
+            background: #eab308;
+        }
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(71, 85, 105, 0.5);
+            backdrop-filter: blur(12px);
+            padding: 1rem 1.5rem;
+            border-radius: 1rem;
+            color: #fff;
+            max-width: 350px;
+            z-index: 1000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.5s ease;
+        }
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .toast .toast-icon {
+            margin-right: 0.75rem;
+        }
+        .toast-success .toast-icon { color: #22c55e; }
+        .toast-error .toast-icon { color: #ef4444; }
+        .toast-warning .toast-icon { color: #eab308; }
+        .text-cyan { color: #06b6d4; }
+        .text-gray { color: #94a3b8; }
+        .fa-spin {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .input-url {
+            background: #0f172a;
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            color: #e2e8f0;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            width: 100%;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+        .input-url:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .input-url::placeholder {
+            color: #475569;
+        }
+        .status-message {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            text-align: center;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            border: 1px solid rgba(71, 85, 105, 0.2);
+        }
+        .status-message .icon {
+            margin-right: 0.5rem;
+        }
+        .status-message.success { color: #22c55e; border-color: rgba(34, 197, 94, 0.2); }
+        .status-message.info { color: #3b82f6; border-color: rgba(59, 130, 246, 0.2); }
+        .status-message.warning { color: #eab308; border-color: rgba(234, 179, 8, 0.2); }
+        .status-message.error { color: #ef4444; border-color: rgba(239, 68, 68, 0.2); }
+    </style>
+</head>
+<body>
+    <div class="w-full max-w-lg mx-auto p-4">
+        <div class="card rounded-3xl shadow-2xl p-6">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-bolt text-yellow-400 text-2xl"></i>
+                    <h1 class="text-2xl font-bold text-white">BitZero</h1>
+                </div>
+                <a href="/descargas" class="btn-panel" id="btnPanel">
+                    <i class="fas fa-list"></i>
+                    <span class="hidden sm:inline">Panel</span>
+                    <span class="sm:hidden">📋</span>
+                    <span class="badge" id="activeBadge">0</span>
+                    <span class="badge paused-badge hidden" id="pausedBadge">⏸️0</span>
+                </a>
+            </div>
+
+            <!-- Input -->
+            <div class="mb-4">
+                <input 
+                    type="text" 
+                    id="urlInput"
+                    placeholder="Pega el enlace BitZero aquí..."
+                    class="input-url">
+            </div>
+
+            <!-- Botón -->
+            <button onclick="iniciarDescarga()" 
+                    id="btnDescargar"
+                    class="btn-download w-full text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-3 text-base">
+                <i class="fas fa-download"></i>
+                INICIAR DESCARGA
+            </button>
+
+            <!-- Mensaje de estado -->
+            <div id="statusMessage" class="status-message mt-4">
+                <span class="icon">💡</span>
+                <span>Ingresa un enlace para comenzar</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast de notificación -->
+    <div id="toast" class="toast">
+        <div class="flex items-center">
+            <span class="toast-icon"><i class="fas fa-check-circle"></i></span>
+            <span id="toastMessage">Descarga iniciada correctamente</span>
+        </div>
+    </div>
+
+    <script>
+        async function iniciarDescarga() {
+            const url = document.getElementById('urlInput').value.trim();
+            const btn = document.getElementById('btnDescargar');
+            const statusMsg = document.getElementById('statusMessage');
+
+            if (!url) {
+                mostrarToast('Por favor pega un enlace de BitZero', 'warning');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Iniciando...';
+            statusMsg.className = 'status-message info';
+            statusMsg.innerHTML = '<span class="icon">⏳</span><span>Iniciando descarga...</span>';
+
+            try {
+                const response = await fetch('/descargar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    mostrarToast('✅ Descarga iniciada en segundo plano', 'success');
+                    
+                    statusMsg.className = 'status-message success';
+                    statusMsg.innerHTML = `
+                        <span class="icon">✅</span>
+                        <span>Descarga iniciada correctamente</span>
+                        <div class="text-xs mt-1 text-gray-400">Ver el progreso en el <a href="/descargas" class="text-blue-400 hover:underline">Panel de Descargas</a></div>
+                    `;
+                    
+                    document.getElementById('urlInput').value = '';
+                    actualizarBadge();
+                    
+                    // Resetear mensaje después de 5 segundos
+                    setTimeout(() => {
+                        if (!document.getElementById('btnDescargar').disabled) {
+                            statusMsg.className = 'status-message';
+                            statusMsg.innerHTML = '<span class="icon">💡</span><span>Ingresa un enlace para comenzar</span>';
+                        }
+                    }, 5000);
+                    
+                } else {
+                    mostrarToast('Error: ' + (data.error || 'Error desconocido'), 'error');
+                    statusMsg.className = 'status-message error';
+                    statusMsg.innerHTML = `<span class="icon">❌</span><span>${data.error || 'Error al iniciar la descarga'}</span>`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarToast('Error de conexión con el servidor', 'error');
+                statusMsg.className = 'status-message error';
+                statusMsg.innerHTML = '<span class="icon">❌</span><span>Error de conexión con el servidor</span>';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-download"></i> INICIAR DESCARGA';
+            }
+        }
+
+        function mostrarToast(mensaje, tipo = 'success') {
+            const toast = document.getElementById('toast');
+            const message = document.getElementById('toastMessage');
+            const icon = toast.querySelector('.toast-icon i');
+            
+            toast.className = 'toast';
+            if (tipo === 'success') {
+                toast.classList.add('toast-success');
+                icon.className = 'fas fa-check-circle';
+            } else if (tipo === 'warning') {
+                toast.classList.add('toast-warning');
+                icon.className = 'fas fa-exclamation-triangle';
+            } else {
+                toast.classList.add('toast-error');
+                icon.className = 'fas fa-exclamation-circle';
+            }
+            
+            message.textContent = mensaje;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
+
+        function actualizarBadge() {
+            fetch('/api/descargas')
+                .then(response => response.json())
+                .then(data => {
+                    const activas = data.filter(d => !d.completed && d.status !== 'error' && d.status !== 'error_conexion' && d.status !== 'pausado');
+                    const pausadas = data.filter(d => d.status === 'pausado' || d.paused || d.status === 'error_conexion' || d.connection_error);
+                    
+                    const badge = document.getElementById('activeBadge');
+                    if (badge) {
+                        badge.textContent = activas.length;
+                        badge.style.display = activas.length > 0 ? 'inline' : 'none';
+                    }
+                    
+                    const pausedBadge = document.getElementById('pausedBadge');
+                    if (pausedBadge) {
+                        if (pausadas.length > 0) {
+                            pausedBadge.textContent = '⏸️' + pausadas.length;
+                            pausedBadge.classList.remove('hidden');
+                        } else {
+                            pausedBadge.classList.add('hidden');
+                        }
+                    }
+                })
+                .catch(() => {});
+        }
+
+        // Permitir presionar Enter
+        document.getElementById('urlInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') iniciarDescarga();
+        });
+
+        // Actualizar badge cada 5 segundos
+        setInterval(actualizarBadge, 5000);
+        actualizarBadge();
+    </script>
+</body>
+</html>
