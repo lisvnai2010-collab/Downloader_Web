@@ -204,14 +204,22 @@ def ejecutar_descarga(download_id, url):
         
         state_file = "/storage/emulated/0/Download/BitZero/.bitzero_state.json"
         
-        # ✅ RUTA CORRECTA AL BINARIO
-        bitzero_path = "/data/data/com.termux/files/home/bitzero"
+        # ✅ RUTA CORREGIDA - Ahora busca en la carpeta del proyecto
+        bitzero_path = "/data/data/com.termux/files/home/Downloader_Web/bitzero"
         
-        # Si el binario existe, usarlo; si no, usar el script Python
+        # ✅ RUTA ALTERNATIVA (por si el binario está en la ubicación antigua)
+        bitzero_path_alt = "/data/data/com.termux/files/home/bitzero"
+        
+        # Verificar si el binario existe en la nueva ubicación
         if os.path.exists(bitzero_path):
             cmd = [bitzero_path, url]
             print(f"🚀 Usando binario compilado: {bitzero_path}", flush=True)
+        # Si no, verificar en la ubicación antigua
+        elif os.path.exists(bitzero_path_alt):
+            cmd = [bitzero_path_alt, url]
+            print(f"🚀 Usando binario compilado (ubicación antigua): {bitzero_path_alt}", flush=True)
         else:
+            # Si no existe en ningún lado, intentar con el script Python
             cmd = ['python', 'bitzero.py', url]
             print(f"⚠️ Binario no encontrado, usando script Python", flush=True)
         
