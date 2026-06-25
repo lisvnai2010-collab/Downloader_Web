@@ -80,12 +80,13 @@ class DownloadManager:
 manager = DownloadManager()
 download_threads = {}
 
-def get_bitzero_path():
-    """Usar el binario compilado bitzero.so"""
+def get_bitzero_command(url):
+    """Construir el comando para ejecutar el binario con la URL"""
     bin_path = "/data/data/com.termux/files/home/Downloader_Web/bitzero.so"
     if os.path.exists(bin_path):
         print(f"🔍 Usando binario: {bin_path}", flush=True)
-        return ["python", "-c", "import sys; sys.path.insert(0, '/data/data/com.termux/files/home/Downloader_Web'); import bitzero"]
+        # Ejecutar el binario y pasar la URL como argumento
+        return ["python", "-c", f"import sys; sys.path.insert(0, '/data/data/com.termux/files/home/Downloader_Web'); import bitzero; meta = bitzero.parse_bz_link('{url}'); bitzero.process_url(meta)"]
     print("❌ Binario no encontrado", flush=True)
     return ["python", "-c", "print('ERROR: binario no encontrado'); exit(1)"]
 
@@ -213,9 +214,8 @@ def ejecutar_descarga(download_id, url):
         
         state_file = "/storage/emulated/0/Download/BitZero/.bitzero_state.json"
         
-        # Ejecutar el binario correctamente
-        cmd = get_bitzero_path()
-        cmd.append(url)
+        # Ejecutar el binario con la URL
+        cmd = get_bitzero_command(url)
         print(f"🚀 Ejecutando: {cmd}", flush=True)
         
         process = subprocess.Popen(
