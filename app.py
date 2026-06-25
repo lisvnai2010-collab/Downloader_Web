@@ -9,7 +9,7 @@ import threading
 from datetime import datetime
 import platform
 
-app = Flask(__name__, static_folder='.')
+app = Flask(__name__, static_folder='.', template_folder='.')
 
 # Almacenamiento de descargas activas
 downloads = {}
@@ -81,24 +81,24 @@ manager = DownloadManager()
 download_threads = {}
 
 def get_bitzero_path():
-    """Usar exclusivamente el binario compilado bitzero_32.bin"""
-    # Buscar el binario en orden de prioridad
-    paths = [
-        "/storage/emulated/0/BOT DE APK/bitzero_32.bin",
-        "/data/data/com.termux/files/home/bitzero_32.bin",
-        "/storage/emulated/0/Download/BitZero/bitzero_32.bin"
-    ]
+    """Usar el binario compilado bitzero_32.bin"""
+    import os
     
-    for path in paths:
-        if os.path.exists(path):
-            print(f"🔍 Usando binario compilado: {path}", flush=True)
-            # Cargar el módulo desde el binario
-            dirname = os.path.dirname(path)
-            return ['python', '-c', f'import sys; sys.path.insert(0, "{dirname}"); import bitzero']
+    # Ruta EXACTA donde está el binario
+    bin_path = "/data/data/com.termux/files/home/Downloader_Web/bitzero_32.bin"
     
-    # Si no encuentra el binario, error
-    print("❌ Binario bitzero_32.bin no encontrado", flush=True)
-    return ['python', '-c', 'print("ERROR: binario no encontrado"); exit(1)']
+    if os.path.exists(bin_path):
+        print(f"🔍 Usando binario: {bin_path}", flush=True)
+        return ["python", "-c", "import sys; sys.path.insert(0, '/data/data/com.termux/files/home/Downloader_Web'); import bitzero"]
+    
+    # Si no está, buscar en otra ubicación
+    bin_path2 = "/data/data/com.termux/files/home/Downloader_Web/bitzero_64.bin"
+    if os.path.exists(bin_path2):
+        print(f"🔍 Usando binario: {bin_path2}", flush=True)
+        return ["python", "-c", "import sys; sys.path.insert(0, '/data/data/com.termux/files/home/Downloader_Web'); import bitzero"]
+    
+    print("❌ Binario no encontrado", flush=True)
+    return ["python", "-c", 'print("ERROR: binario no encontrado"); exit(1)']
 
 @app.route('/')
 def index():
@@ -143,7 +143,6 @@ def iniciar_descarga():
     if url.startswith('bitzero '):
         url = url.replace('bitzero ', '', 1)
     
-    # ELIMINAR EL ARCHIVO DE ESTADO AL INICIAR UNA NUEVA DESCARGA
     state_file = "/storage/emulated/0/Download/BitZero/.bitzero_state.json"
     if os.path.exists(state_file):
         try:
@@ -225,7 +224,6 @@ def ejecutar_descarga(download_id, url):
         
         state_file = "/storage/emulated/0/Download/BitZero/.bitzero_state.json"
         
-        # OBTENER EL BINARIO CORRECTO
         cmd = get_bitzero_path()
         cmd.append(url)
         print(f"🚀 Ejecutando: {cmd}", flush=True)
@@ -235,8 +233,9 @@ def ejecutar_descarga(download_id, url):
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
-            bufsize=1,
-            universal_newlines=True
+            bufsize=0,
+            universal_newlines=True,
+            env={**os.environ, 'PYTHONUNBUFFERED': '1'}
         )
         
         manager.update_download(download_id, {'pid': process.pid})
@@ -259,14 +258,12 @@ def ejecutar_descarga(download_id, url):
             if not line:
                 continue
             
-            # Guardar línea en el historial
             with manager.lock:
                 if download_id in manager.downloads:
                     manager.downloads[download_id]['output'].append(line)
                     if len(manager.downloads[download_id]['output']) > 100:
                         manager.downloads[download_id]['output'] = manager.downloads[download_id]['output'][-100:]
             
-            # Detectar pausa por pérdida de conexión
             if "pausada por" in line.lower() or "sin datos por" in line.lower() or "pausada por pérdida" in line.lower():
                 paused = True
                 was_paused = True
@@ -279,7 +276,6 @@ def ejecutar_descarga(download_id, url):
                 })
                 continue
             
-            # Detectar reanudación
             if "reanudando" in line.lower() or "descarga incompleta detectada" in line.lower():
                 paused = False
                 connection_error = False
@@ -291,7 +287,6 @@ def ejecutar_descarga(download_id, url):
                 })
                 continue
             
-            # Detectar error de conexión
             if "error de conexión" in line.lower() or "timeout" in line.lower():
                 connection_error = True
                 was_paused = True
@@ -302,21 +297,18 @@ def ejecutar_descarga(download_id, url):
                 })
                 continue
             
-            # Buscar nombre del archivo
             if "Descargando:" in line:
                 match = re.search(r'Descargando: (.+?) \| Tamaño:', line)
                 if match:
                     file_name = match.group(1)
                     manager.update_download(download_id, {'file_name': file_name})
             
-            # Buscar tamaño total
             if "Tamaño:" in line:
                 match = re.search(r'Tamaño: (.+)', line)
                 if match:
                     total_size = match.group(1).strip()
                     manager.update_download(download_id, {'total_size': total_size})
             
-            # Buscar progreso
             if "Descargando..." in line:
                 match = re.search(r'Descargando\.\.\. (\d+\.?\d*)% \| (.+)', line)
                 if match:
@@ -334,7 +326,6 @@ def ejecutar_descarga(download_id, url):
                             'connection_error': connection_error
                         })
             
-            # Buscar velocidad
             if "SPEED:" in line:
                 try:
                     speed_bytes = float(line.replace("SPEED:", "").strip())
@@ -353,7 +344,6 @@ def ejecutar_descarga(download_id, url):
                 except:
                     pass
             
-            # Verificar si está completo
             if "GUARDADO:" in line:
                 completed = True
                 percent = 100
@@ -361,26 +351,19 @@ def ejecutar_descarga(download_id, url):
                 if match:
                     file_name = match.group(1)
                 
-                # Verificar integridad
                 file_path = os.path.join("/storage/emulated/0/Download/BitZero", file_name)
                 if os.path.exists(file_path):
                     file_size = os.path.getsize(file_path)
-                    size_match = re.search(r'Tamaño: (\d+)', line)
-                    if size_match:
-                        expected_size = int(size_match.group(1))
-                        margen = max(1024 * 100, expected_size * 0.01)
-                        if abs(file_size - expected_size) > margen:
-                            print(f"⚠️ Tamaño incorrecto: {file_size} vs {expected_size}", flush=True)
-                            completed = False
-                            was_paused = True
-                            manager.update_download(download_id, {
-                                'status': 'pausado',
-                                'error': f'Archivo incompleto: {file_size} bytes',
-                                'paused': True
-                            })
-                            continue
-                    else:
-                        pass
+                    manager.update_download(download_id, {
+                        'completed': True,
+                        'percent': 100,
+                        'file_name': file_name,
+                        'status': 'completado',
+                        'downloaded': sizeof_fmt(file_size),
+                        'paused': False,
+                        'connection_error': False,
+                        'error': None
+                    })
                 else:
                     completed = False
                     was_paused = True
@@ -390,17 +373,6 @@ def ejecutar_descarga(download_id, url):
                         'paused': True
                     })
                     continue
-                
-                manager.update_download(download_id, {
-                    'completed': True,
-                    'percent': 100,
-                    'file_name': file_name,
-                    'status': 'completado',
-                    'downloaded': sizeof_fmt(file_size) if 'file_size' in locals() else last_downloaded,
-                    'paused': False,
-                    'connection_error': False,
-                    'error': None
-                })
         
         process.wait()
         
