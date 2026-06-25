@@ -81,18 +81,18 @@ manager = DownloadManager()
 download_threads = {}
 
 def get_bitzero_path():
-    """Usar el binario compilado bitzero_32.bin"""
+    """Usar el binario compilado bitzero.so"""
     import os
     
     # Ruta EXACTA donde está el binario
-    bin_path = "/data/data/com.termux/files/home/Downloader_Web/bitzero_32.bin"
+    bin_path = "/data/data/com.termux/files/home/Downloader_Web/bitzero.so"
     
     if os.path.exists(bin_path):
         print(f"🔍 Usando binario: {bin_path}", flush=True)
         return ["python", "-c", "import sys; sys.path.insert(0, '/data/data/com.termux/files/home/Downloader_Web'); import bitzero"]
     
     # Si no está, buscar en otra ubicación
-    bin_path2 = "/data/data/com.termux/files/home/Downloader_Web/bitzero_64.bin"
+    bin_path2 = "/data/data/com.termux/files/home/Downloader_Web/bitzero.so"
     if os.path.exists(bin_path2):
         print(f"🔍 Usando binario: {bin_path2}", flush=True)
         return ["python", "-c", "import sys; sys.path.insert(0, '/data/data/com.termux/files/home/Downloader_Web'); import bitzero"]
