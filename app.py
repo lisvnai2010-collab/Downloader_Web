@@ -7,6 +7,7 @@ import time
 import uuid
 import threading
 from datetime import datetime
+import platform
 
 app = Flask(__name__, static_folder='.')
 
@@ -79,6 +80,26 @@ class DownloadManager:
 manager = DownloadManager()
 download_threads = {}
 
+def get_bitzero_path():
+    """Usar exclusivamente el binario compilado bitzero_32.bin"""
+    # Buscar el binario en orden de prioridad
+    paths = [
+        "/storage/emulated/0/BOT DE APK/bitzero_32.bin",
+        "/data/data/com.termux/files/home/bitzero_32.bin",
+        "/storage/emulated/0/Download/BitZero/bitzero_32.bin"
+    ]
+    
+    for path in paths:
+        if os.path.exists(path):
+            print(f"🔍 Usando binario compilado: {path}", flush=True)
+            # Cargar el módulo desde el binario
+            dirname = os.path.dirname(path)
+            return ['python', '-c', f'import sys; sys.path.insert(0, "{dirname}"); import bitzero']
+    
+    # Si no encuentra el binario, error
+    print("❌ Binario bitzero_32.bin no encontrado", flush=True)
+    return ['python', '-c', 'print("ERROR: binario no encontrado"); exit(1)']
+
 @app.route('/')
 def index():
     return open('index.html', 'r', encoding='utf-8').read()
@@ -122,7 +143,7 @@ def iniciar_descarga():
     if url.startswith('bitzero '):
         url = url.replace('bitzero ', '', 1)
     
-    # 🔥 ELIMINAR EL ARCHIVO DE ESTADO AL INICIAR UNA NUEVA DESCARGA
+    # ELIMINAR EL ARCHIVO DE ESTADO AL INICIAR UNA NUEVA DESCARGA
     state_file = "/storage/emulated/0/Download/BitZero/.bitzero_state.json"
     if os.path.exists(state_file):
         try:
@@ -204,24 +225,10 @@ def ejecutar_descarga(download_id, url):
         
         state_file = "/storage/emulated/0/Download/BitZero/.bitzero_state.json"
         
-        # ✅ RUTA CORREGIDA - Ahora busca en la carpeta del proyecto
-        bitzero_path = "/data/data/com.termux/files/home/Downloader_Web/bitzero"
-        
-        # ✅ RUTA ALTERNATIVA (por si el binario está en la ubicación antigua)
-        bitzero_path_alt = "/data/data/com.termux/files/home/bitzero"
-        
-        # Verificar si el binario existe en la nueva ubicación
-        if os.path.exists(bitzero_path):
-            cmd = [bitzero_path, url]
-            print(f"🚀 Usando binario compilado: {bitzero_path}", flush=True)
-        # Si no, verificar en la ubicación antigua
-        elif os.path.exists(bitzero_path_alt):
-            cmd = [bitzero_path_alt, url]
-            print(f"🚀 Usando binario compilado (ubicación antigua): {bitzero_path_alt}", flush=True)
-        else:
-            # Si no existe en ningún lado, intentar con el script Python
-            cmd = ['python', 'bitzero.py', url]
-            print(f"⚠️ Binario no encontrado, usando script Python", flush=True)
+        # OBTENER EL BINARIO CORRECTO
+        cmd = get_bitzero_path()
+        cmd.append(url)
+        print(f"🚀 Ejecutando: {cmd}", flush=True)
         
         process = subprocess.Popen(
             cmd,
