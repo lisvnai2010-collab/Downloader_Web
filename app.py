@@ -82,23 +82,12 @@ download_threads = {}
 
 def get_bitzero_path():
     """Usar el binario compilado bitzero.so"""
-    import os
-    
-    # Ruta EXACTA donde está el binario
     bin_path = "/data/data/com.termux/files/home/Downloader_Web/bitzero.so"
-    
     if os.path.exists(bin_path):
         print(f"🔍 Usando binario: {bin_path}", flush=True)
         return ["python", "-c", "import sys; sys.path.insert(0, '/data/data/com.termux/files/home/Downloader_Web'); import bitzero"]
-    
-    # Si no está, buscar en otra ubicación
-    bin_path2 = "/data/data/com.termux/files/home/Downloader_Web/bitzero.so"
-    if os.path.exists(bin_path2):
-        print(f"🔍 Usando binario: {bin_path2}", flush=True)
-        return ["python", "-c", "import sys; sys.path.insert(0, '/data/data/com.termux/files/home/Downloader_Web'); import bitzero"]
-    
     print("❌ Binario no encontrado", flush=True)
-    return ["python", "-c", 'print("ERROR: binario no encontrado"); exit(1)']
+    return ["python", "-c", "print('ERROR: binario no encontrado'); exit(1)"]
 
 @app.route('/')
 def index():
@@ -224,6 +213,7 @@ def ejecutar_descarga(download_id, url):
         
         state_file = "/storage/emulated/0/Download/BitZero/.bitzero_state.json"
         
+        # Ejecutar el binario correctamente
         cmd = get_bitzero_path()
         cmd.append(url)
         print(f"🚀 Ejecutando: {cmd}", flush=True)
