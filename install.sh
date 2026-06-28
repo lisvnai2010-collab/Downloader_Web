@@ -20,98 +20,80 @@ pkg update -y && pkg upgrade -y
 
 # 3. Instalar dependencias
 echo "📦 Instalando dependencias..."
-pkg install python clang binutils -y
+pkg install python clang binutils git -y
 pip install flask requests beautifulsoup4 urllib3
 
-# 4. Clonar repositorio
+# 4. Crear carpeta ZEROX_WORD en Downloads
+INSTALL_DIR="/storage/emulated/0/Download/ZEROX_WORD"
+echo "📁 Creando carpeta de instalación: $INSTALL_DIR"
+mkdir -p "$INSTALL_DIR"
+
+# 5. Clonar repositorio dentro de ZEROX_WORD
 echo "📥 Descargando el Downloader Web..."
-cd ~/
-rm -rf Downloader_Web
+rm -rf "$INSTALL_DIR/Downloader_Web"
+git clone https://github.com/lisvnai2010-collab/Downloader_Web.git "$INSTALL_DIR/Downloader_Web"
+cd "$INSTALL_DIR/Downloader_Web"
 
-# ✅ TU REPOSITORIO
-git clone https://github.com/lisvnai2010-collab/Downloader_Web.git Downloader_Web
-
-# 5. Dar permisos a los binarios
+# 6. Dar permisos a los binarios
 echo "🔓 Dando permisos..."
-cd ~/Downloader_Web
 chmod +x bitzero_32.bin bitzero_64.bin bitzero.sh
 
-# 5.5. Instalar binarios en el sistema
+# 7. Instalar binarios en el sistema
 echo "📦 Instalando binarios en el sistema..."
-cp bitzero_32.bin $PREFIX/bin/
-cp bitzero_64.bin $PREFIX/bin/
+cp bitzero_32.bin $PREFIX/bin/bitzero_32.bin
+cp bitzero_64.bin $PREFIX/bin/bitzero_64.bin
 cp bitzero.sh $PREFIX/bin/bitzero
 chmod +x $PREFIX/bin/bitzero $PREFIX/bin/bitzero_32.bin $PREFIX/bin/bitzero_64.bin
 echo "✅ Binarios instalados correctamente"
 
-# 6. Crear script de inicio
+# 7.1. Detectar arquitectura e informar al usuario
+ARCH=$(uname -m)
+echo ""
+if [ "$ARCH" = "aarch64" ]; then
+    echo "🖥️ Arquitectura detectada: 64-bit (aarch64) → usando bitzero_64.bin"
+else
+    echo "🖥️ Arquitectura detectada: 32-bit (armeabi-v7a) → usando bitzero_32.bin"
+fi
+echo ""
+
+# 8. Crear script de inicio apuntando a ZEROX_WORD
 echo "📝 Creando script de inicio..."
-cat > ~/iniciar_downloader.sh << 'EOF'
+cat > ~/iniciar_downloader.sh << EOF
 #!/data/data/com.termux/files/usr/bin/bash
-cd ~/Downloader_Web
+cd "$INSTALL_DIR/Downloader_Web"
 python app.py
 EOF
 chmod +x ~/iniciar_downloader.sh
 
-# 7. Crear comandos rápidos
+# 9. Crear comandos rápidos
 echo "📝 Creando comandos rápidos..."
+if ! grep -q "Comandos para Downloader Web" ~/.bashrc; then
 cat >> ~/.bashrc << 'EOF'
 
 # Comandos para Downloader Web
+alias Downloader='~/iniciar_downloader.sh'
 alias downloader='~/iniciar_downloader.sh'
 alias dw-start='~/iniciar_downloader.sh'
 alias dw-stop='pkill -f "python app.py"'
 alias dw-status='ps aux | grep "python app.py" | grep -v grep'
 EOF
+fi
 
-# 8. Cargar los comandos
+# 10. Cargar los comandos
 source ~/.bashrc
 
 echo ""
 echo "✅ ¡INSTALACIÓN COMPLETA!"
 echo ""
+echo "📂 Archivos instalados en:"
+echo "   $INSTALL_DIR/Downloader_Web"
+echo ""
 echo "📋 COMANDOS DISPONIBLES:"
-echo "   downloader   → Iniciar el servidor"
+echo "   Downloader   → Iniciar el servidor"
 echo "   dw-start     → Iniciar el servidor"
 echo "   dw-stop      → Detener el servidor"
 echo "   dw-status    → Ver si el servidor está corriendo"
 echo ""
 echo "🌐 Accede a: http://127.0.0.1:5000"
 echo ""
-echo "🚀 Para iniciar ahora mismo, ejecuta: downloader"chmod +x bitzero
-
-# 6. Crear script de inicio
-echo "📝 Creando script de inicio..."
-cat > ~/iniciar_downloader.sh << 'EOF'
-#!/data/data/com.termux/files/usr/bin/bash
-cd ~/Downloader_Web
-python app.py
-EOF
-chmod +x ~/iniciar_downloader.sh
-
-# 7. Crear comandos rápidos
-echo "📝 Creando comandos rápidos..."
-cat >> ~/.bashrc << 'EOF'
-
-# Comandos para Downloader Web
-alias downloader='~/iniciar_downloader.sh'
-alias dw-start='~/iniciar_downloader.sh'
-alias dw-stop='pkill -f "python app.py"'
-alias dw-status='ps aux | grep "python app.py" | grep -v grep'
-EOF
-
-# 8. Cargar los comandos
-source ~/.bashrc
-
-echo ""
-echo "✅ ¡INSTALACIÓN COMPLETA!"
-echo ""
-echo "📋 COMANDOS DISPONIBLES:"
-echo "   downloader   → Iniciar el servidor"
-echo "   dw-start     → Iniciar el servidor"
-echo "   dw-stop      → Detener el servidor"
-echo "   dw-status    → Ver si el servidor está corriendo"
-echo ""
-echo "🌐 Accede a: http://127.0.0.1:5000"
-echo ""
-echo "🚀 Para iniciar ahora mismo, ejecuta: downloader"
+echo "🚀 Para iniciar ahora mismo, ejecuta: Downloader"
