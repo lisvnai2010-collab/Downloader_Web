@@ -36,12 +36,12 @@ cd "$INSTALL_DIR/Downloader_Web"
 
 # 6. Dar permisos a los binarios
 echo "🔓 Dando permisos..."
-chmod +x bitzero_32.so bitzero_64.so bitzero.sh runner.py
+chmod +x bitzero.cpython-313-arm-linux-androideabi.so bitzero.cpython-313-aarch64-linux-android.so bitzero.sh runner.py
 
-# 7. Instalar binarios en el sistema con nombres renombrados
+# 7. Instalar binarios en el sistema
 echo "📦 Instalando binarios en el sistema..."
-cp bitzero_32.so "$PREFIX/lib/bitzero.cpython-313-arm-linux-androideabi.so"
-cp bitzero_64.so "$PREFIX/lib/bitzero.cpython-313-aarch64-linux-android.so"
+cp bitzero.cpython-313-arm-linux-androideabi.so "$PREFIX/lib/"
+cp bitzero.cpython-313-aarch64-linux-android.so "$PREFIX/lib/"
 cp bitzero.sh $PREFIX/bin/bitzero
 chmod +x $PREFIX/bin/bitzero
 
