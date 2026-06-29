@@ -36,23 +36,24 @@ cd "$INSTALL_DIR/Downloader_Web"
 
 # 6. Dar permisos a los binarios
 echo "🔓 Dando permisos..."
-chmod +x bitzero_32.bin bitzero_64.bin bitzero.sh
+chmod +x bitzero_32.so bitzero_64.so bitzero.sh runner.py
 
-# 7. Instalar binarios en el sistema
+# 7. Instalar binarios en el sistema con nombres renombrados
 echo "📦 Instalando binarios en el sistema..."
-cp bitzero_32.bin $PREFIX/bin/bitzero_32.bin
-cp bitzero_64.bin $PREFIX/bin/bitzero_64.bin
+cp bitzero_32.so "$PREFIX/lib/bitzero.cpython-313-arm-linux-androideabi.so"
+cp bitzero_64.so "$PREFIX/lib/bitzero.cpython-313-aarch64-linux-android.so"
 cp bitzero.sh $PREFIX/bin/bitzero
-chmod +x $PREFIX/bin/bitzero $PREFIX/bin/bitzero_32.bin $PREFIX/bin/bitzero_64.bin
+chmod +x $PREFIX/bin/bitzero
+
 echo "✅ Binarios instalados correctamente"
 
 # 7.1. Detectar arquitectura e informar al usuario
 ARCH=$(uname -m)
 echo ""
 if [ "$ARCH" = "aarch64" ]; then
-    echo "🖥️ Arquitectura detectada: 64-bit (aarch64) → usando bitzero_64.bin"
+    echo "🖥️ Arquitectura detectada: 64-bit (aarch64) → usando bitzero.cpython-313-aarch64-linux-android.so"
 else
-    echo "🖥️ Arquitectura detectada: 32-bit (armeabi-v7a) → usando bitzero_32.bin"
+    echo "🖥️ Arquitectura detectada: 32-bit (armv8l/armeabi-v7a) → usando bitzero.cpython-313-arm-linux-androideabi.so"
 fi
 echo ""
 

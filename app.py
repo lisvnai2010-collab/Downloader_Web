@@ -81,11 +81,17 @@ manager = DownloadManager()
 download_threads = {}
 
 def get_bitzero_path():
-    """Detectar arquitectura y usar el binario compilado correspondiente"""
+    """Usar runner.py como puente para ejecutar el binario correcto según arquitectura"""
+    runner = "/storage/emulated/0/Download/ZEROX_WORD/Downloader_Web/runner.py"
+    if os.path.exists(runner):
+        print(f"✅ Runner encontrado: {runner}", flush=True)
+        return ['python', runner]
+    print("❌ runner.py no encontrado", flush=True)
+    return ['python', '-c', 'print("ERROR: runner.py no encontrado"); exit(1)']
+
+def get_bitzero_path_unused():
     arch = platform.machine()
     print(f"🖥️ Arquitectura detectada: {arch}", flush=True)
-
-    # Seleccionar nombre del binario según arquitectura
     if arch == "aarch64":
         bin_name = "bitzero_64.bin"
         mod_name = "bitzero_64"
@@ -94,18 +100,15 @@ def get_bitzero_path():
         bin_name = "bitzero_32.bin"
         mod_name = "bitzero_32"
         arch_label = "32-bit (armeabi-v7a)"
-
     print(f"📦 Buscando binario {arch_label}: {bin_name}", flush=True)
-
     base_dirs = [
         "/storage/emulated/0/Download/ZEROX_WORD/Downloader_Web"
     ]
-
     for d in base_dirs:
         path = os.path.join(d, bin_name)
         if os.path.exists(path):
             print(f"✅ Binario encontrado: {path}", flush=True)
-            return ['python', '-c', f'import sys; sys.path.insert(0, "{d}"); import {mod_name}']
+            return ['python', '-c', f'''import sys; sys.argv = ["bitzero", "__URL__"]; sys.path.insert(0, "{d}"); import {mod_name} as bz; import os; url = sys.argv[1]; state = bz.load_state(); bz.stop_flag = False; bz.download_retries = 0; bz.retry_backoff = 0; import time; bz.last_successful_chunk = time.time(); meta = bz.parse_bz_link(url) if url.startswith("BZ#") else bz.parse_bitzero_url(url); bz.process_url(meta)'''.replace("__URL__", url)]
 
     print(f"❌ Binario {bin_name} no encontrado en ninguna ruta", flush=True)
     return ['python', '-c', f'print("ERROR: binario {bin_name} no encontrado"); exit(1)']
